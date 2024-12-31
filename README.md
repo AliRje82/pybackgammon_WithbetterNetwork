@@ -1,3 +1,5 @@
-- [ ] changing network to peer to peer
-- [ ] adding chats
-- [ ] adding onion routing
+- [ ]  changing network to peer to peer
+- [ ]  adding chats
+- [ ]  adding onion routing
+- [ ]  Should change socket with moder approches ( asyncio for server and WebRtc for p2p)
+- [ ]  Adding menu page
