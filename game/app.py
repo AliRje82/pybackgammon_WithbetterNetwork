@@ -11,7 +11,8 @@ class App(ConnectionListener):
         self._screen = None
         self.reset_sound = None
         self.run_server = run_server
-        self.size = self.width, self.height = 1960, 1120
+        # self.size = self.width, self.height = 1960, 1120
+        self.size = self.width, self.height = 1000, 1000
         self.board = Board(self)
         self.dice = Dice(self)
         self.init_pieces()
