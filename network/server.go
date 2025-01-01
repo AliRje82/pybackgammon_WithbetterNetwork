@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -22,6 +23,16 @@ func main() {
 		panic(err)
 	}
 	g := &Graph{}
+
+	go func() {
+		for {
+			time.Sleep(45 * time.Second)
+			fmt.Println("Running the matchmaking algorithm")
+			matchMaking(g)
+			fmt.Println("Finishing up the algorithm")
+		}
+
+	}()
 
 	for {
 
@@ -58,12 +69,44 @@ func connection(conn net.Conn, g *Graph) {
 	node := &Node{}
 	node.username = username
 	node.ip = ip
-	node.indx = make(chan int)
-
+	node.indx = make(chan *Node)
+	node.message = make(chan string)
+	node.isReserved = false
 	g.addNode(node)
+	//Matchmaking...
+	for {
+		matched := <-node.indx
+		g.match.RLock()
+		fmt.Println("Found a match indx", matched)
+		message := matched.username + "," + matched.ip
+		conn.Write([]byte(message))
 
-	matched := <-node.indx
+		message, err := reader.ReadString('\n')
+		if err != nil {
+			fmt.Println("Something happend!")
+			node.isReserved = false
+			matched.message <- "ERR"
+			g.match.RUnlock()
+			continue
+		}
+		matched.message <- message
+		other_message := <-node.message
+		if other_message == "Accept" && message == "Accept" {
+			//play the game
+			g.match.RUnlock()
+			break
+		} else if other_message == "ERR" {
+			node.isReserved = false
+			g.match.RUnlock()
+		} else {
+			node.RemoveEdge(matched)
+			node.isReserved = false
+			g.match.RUnlock()
+		}
+	}
+	close(node.indx)
+	close(node.message)
 
-	fmt.Println(matched)
+	// Rolling dice
 
 }
