@@ -1,11 +1,12 @@
 package main
 
 import (
-	"bufio"
 	"fmt"
+	"math/rand"
 	"net"
 	"os"
 	"pybackgammon_WithbetterNetwork/Onionrouting/models"
+	"pybackgammon_WithbetterNetwork/Onionrouting/myNet"
 	"strings"
 	"time"
 )
@@ -51,21 +52,20 @@ func main() {
 func connection(conn net.Conn, g *models.Graph) {
 	defer conn.Close()
 
-	reader := bufio.NewReader(conn)
-	message, err := reader.ReadString('\n')
+	message, err := myNet.ReciveMessage(conn)
 	if err != nil {
 		fmt.Println("Error accourd in reading a massage")
 		return
 	}
 
-	parts := strings.Split(message, ",")
+	parts := strings.Split(string(message), ",")
 
 	if len(parts) != 2 {
 		panic("Massage has problem!")
 	}
 
 	username, ip := parts[0], parts[1]
-
+	fmt.Println("username: ", username, "ip: ", ip)
 	//Create a node
 	node := &models.Node{}
 	node.Username = username
@@ -82,7 +82,8 @@ func connection(conn net.Conn, g *models.Graph) {
 		message := matched.Username + "," + matched.Ip
 		conn.Write([]byte(message))
 
-		message, err := reader.ReadString('\n')
+		me, err := myNet.ReciveMessage(conn)
+		message = string(me)
 		if err != nil {
 			fmt.Println("Something happend!")
 			node.IsReserved = false
@@ -94,6 +95,7 @@ func connection(conn net.Conn, g *models.Graph) {
 		other_message := <-node.Message
 		if other_message == "Accept" && message == "Accept" {
 			//play the game
+			node.OtherPlayer = matched
 			g.Match.RUnlock()
 			break
 		} else if other_message == "ERR" {
@@ -105,9 +107,37 @@ func connection(conn net.Conn, g *models.Graph) {
 			g.Match.RUnlock()
 		}
 	}
-	close(node.Indx)
-	close(node.Message)
+	// close(node.Indx)
+	// close(node.Message)
+	node.MatchEnd = false
 
 	// Rolling dice
+	fmt.Println("Rolling phase!")
+	for {
+		message, err := myNet.ReciveMessage(conn)
+		if err != nil {
+			fmt.Println("Error accourd in reading a massage")
+			return
+		}
 
+		if string(message) == "Roll" && node.Turn {
+			dice1 := rand.Intn(6) + 1
+			dice2 := rand.Intn(6) + 1
+			responce, err := myNet.MakePkt([]byte(fmt.Sprint(dice1) + "," + fmt.Sprint(dice2)))
+			if err != nil {
+				fmt.Println("Something happend in making a pkt")
+			}
+			node.Turn = false
+			node.OtherPlayer.Turn = true
+			fmt.Println(dice1, dice2)
+			conn.Write(responce)
+		} else if string(message) == "End" {
+			node.MatchEnd = true
+		}
+		//TODO make a thread that check if the match has ended!
+		if node.MatchEnd && node.OtherPlayer.MatchEnd {
+			fmt.Println("Ending the match")
+			break
+		}
+	}
 }

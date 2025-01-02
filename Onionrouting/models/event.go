@@ -16,6 +16,8 @@ func MatchMaking(g *Graph) {
 				e.IsReserved = true
 				e.Indx <- node
 				node.Indx <- e
+				node.Turn = true
+				e.Turn = false
 			}
 		}
 	}

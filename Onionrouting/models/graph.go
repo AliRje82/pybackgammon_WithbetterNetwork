@@ -3,12 +3,15 @@ package models
 import "sync"
 
 type Node struct {
-	Edges      []*Node
-	Ip         string
-	Username   string
-	Indx       chan *Node
-	IsReserved bool
-	Message    chan string
+	Edges       []*Node
+	Ip          string
+	Username    string
+	Indx        chan *Node
+	IsReserved  bool
+	Message     chan string
+	Turn        bool
+	OtherPlayer *Node
+	MatchEnd    bool
 }
 
 func (n *Node) RemoveEdge(node *Node) {

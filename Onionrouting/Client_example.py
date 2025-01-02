@@ -67,10 +67,9 @@ def decrypt_message(keys, message):
     for k in keys:
         message = decrypt_aes_ecb(k, message)
         try:
-            # Unpad after each decryption step since routers pad before encrypting
+            
             message = unpad(message, AES.block_size)
         except ValueError:
-            # Padding might not exist in the last step if it was added in earlier layers only
             pass
     return message
 
@@ -100,17 +99,11 @@ keys,exchange_messages=key_gen()
 client = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 client.connect(("localhost", 8000))
 exchange_keys(client,exchange_messages)
+loging_message = b"ali,localhost:9000"
 
-while True:
-    x = input()
-    if x== '1':
-        message = b"Roll"
-        dice=dice_rolls(client,message,keys)
-        if type(dice) == int :
-            continue
-        else:
-            print(dice)
-    if x == 'e':
-        client.close()
-        break
+client.send(make_pkt(encrypt_message(keys,loging_message)))
+
+client.close()
+
+
 
