@@ -3,11 +3,11 @@ package main
 import (
 	"bytes"
 	"crypto/aes"
-	"encoding/binary"
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"pybackgammon_WithbetterNetwork/Onionrouting/myNet"
 )
 
 func main() {
@@ -41,48 +41,10 @@ func main() {
 
 }
 
-func reciveMessage(conn net.Conn) ([]byte, error) {
-	buf := make([]byte, 1024)
-
-	_, err := conn.Read(buf[:4])
-	if err != nil {
-		return nil, err
-	}
-	var messageLength uint32
-	err = binary.Read(bytes.NewReader(buf[:4]), binary.BigEndian, &messageLength)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read message length: %v", err)
-	}
-
-	message := make([]byte, messageLength)
-	_, err = conn.Read(message)
-	if err != nil {
-		return nil, fmt.Errorf("failed to read message data: %v", err)
-	}
-
-	fmt.Printf("Received message: %s\n", message)
-
-	return message, nil
-}
-
 func pad(src []byte, blockSize int) []byte {
 	padding := blockSize - len(src)%blockSize
 	padtext := bytes.Repeat([]byte{byte(padding)}, padding)
 	return append(src, padtext...)
-}
-func makePkt(message []byte) ([]byte, error) {
-	messageLength := uint32(len(message))
-
-	var lengthHeader bytes.Buffer
-
-	err := binary.Write(&lengthHeader, binary.BigEndian, messageLength)
-	if err != nil {
-		return nil, fmt.Errorf("failed to write length header: %v", err)
-	}
-
-	packet := append(lengthHeader.Bytes(), message...)
-
-	return packet, nil
 }
 
 // Removes padding from the plaintext
@@ -138,7 +100,7 @@ func decryptAES_ECB(key, ciphertext []byte) []byte {
 func routing(conn net.Conn, next string) {
 	defer conn.Close()
 
-	key, err := reciveMessage(conn)
+	key, err := myNet.ReciveMessage(conn)
 	if err != nil {
 		fmt.Println("Connection problem in reading!")
 		return
@@ -159,7 +121,7 @@ func routing(conn net.Conn, next string) {
 
 		for {
 
-			nextMassage, nextErr := reciveMessage(call)
+			nextMassage, nextErr := myNet.ReciveMessage(call)
 
 			if nextErr != nil {
 				errorChan <- fmt.Errorf("next connection error: %v", err)
@@ -167,7 +129,7 @@ func routing(conn net.Conn, next string) {
 			}
 
 			//Encrypt
-			message, err := makePkt(encryptAES_ECB(key, nextMassage))
+			message, err := myNet.MakePkt(encryptAES_ECB(key, nextMassage))
 			if err != nil {
 				errorChan <- err
 				return
@@ -179,13 +141,13 @@ func routing(conn net.Conn, next string) {
 	//Getting a massage
 	go func() {
 		for {
-			beforeMassage, beforeErr := reciveMessage(conn)
+			beforeMassage, beforeErr := myNet.ReciveMessage(conn)
 			if beforeErr != nil {
 				errorChan <- fmt.Errorf("next connection error: %v", err)
 				return
 			}
 			//Decrypt
-			message, err := makePkt(decryptAES_ECB(key, beforeMassage))
+			message, err := myNet.MakePkt(decryptAES_ECB(key, beforeMassage))
 			if err != nil {
 				errorChan <- err
 				return

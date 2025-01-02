@@ -1,10 +1,11 @@
-package network
+package main
 
 import (
 	"bufio"
 	"fmt"
 	"net"
 	"os"
+	"pybackgammon_WithbetterNetwork/Onionrouting/models"
 	"strings"
 	"time"
 )
@@ -22,13 +23,13 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	g := &Graph{}
+	g := &models.Graph{}
 
 	go func() {
 		for {
 			time.Sleep(45 * time.Second)
 			fmt.Println("Running the matchmaking algorithm")
-			matchMaking(g)
+			models.MatchMaking(g)
 			fmt.Println("Finishing up the algorithm")
 		}
 
@@ -47,7 +48,7 @@ func main() {
 	}
 }
 
-func connection(conn net.Conn, g *Graph) {
+func connection(conn net.Conn, g *models.Graph) {
 	defer conn.Close()
 
 	reader := bufio.NewReader(conn)
@@ -66,46 +67,46 @@ func connection(conn net.Conn, g *Graph) {
 	username, ip := parts[0], parts[1]
 
 	//Create a node
-	node := &Node{}
-	node.username = username
-	node.ip = ip
-	node.indx = make(chan *Node)
-	node.message = make(chan string)
-	node.isReserved = false
-	g.addNode(node)
+	node := &models.Node{}
+	node.Username = username
+	node.Ip = ip
+	node.Indx = make(chan *models.Node)
+	node.Message = make(chan string)
+	node.IsReserved = false
+	g.AddNode(node)
 	//Matchmaking...
 	for {
-		matched := <-node.indx
-		g.match.RLock()
+		matched := <-node.Indx
+		g.Match.RLock()
 		fmt.Println("Found a match indx", matched)
-		message := matched.username + "," + matched.ip
+		message := matched.Username + "," + matched.Ip
 		conn.Write([]byte(message))
 
 		message, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("Something happend!")
-			node.isReserved = false
-			matched.message <- "ERR"
-			g.match.RUnlock()
+			node.IsReserved = false
+			matched.Message <- "ERR"
+			g.Match.RUnlock()
 			continue
 		}
-		matched.message <- message
-		other_message := <-node.message
+		matched.Message <- message
+		other_message := <-node.Message
 		if other_message == "Accept" && message == "Accept" {
 			//play the game
-			g.match.RUnlock()
+			g.Match.RUnlock()
 			break
 		} else if other_message == "ERR" {
-			node.isReserved = false
-			g.match.RUnlock()
+			node.IsReserved = false
+			g.Match.RUnlock()
 		} else {
 			node.RemoveEdge(matched)
-			node.isReserved = false
-			g.match.RUnlock()
+			node.IsReserved = false
+			g.Match.RUnlock()
 		}
 	}
-	close(node.indx)
-	close(node.message)
+	close(node.Indx)
+	close(node.Message)
 
 	// Rolling dice
 
