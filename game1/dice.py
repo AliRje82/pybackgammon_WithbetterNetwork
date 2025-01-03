@@ -1,11 +1,10 @@
 import random
-
 import pygame
-from PodSixNet.Connection import connection
+import json
+
 
 
 class Dice:
-
     def __init__(self, app):
         self.app = app
         self.roll_random()
@@ -14,7 +13,7 @@ class Dice:
         self.cheer_sound = None
         self.images = [None]*2
         self.rects = [None]*2
-        # self.black = self.app.run_server
+        self.black = self.app.run_server
         self.reset()
 
     def reset(self):
@@ -31,12 +30,12 @@ class Dice:
         if data is None:
             self.roll_random()
             self.generate_fluctuations()
-            # self.black = self.app.run_server
+            self.black = self.app.run_server
             self.send_state()
         else:
             self.generate_fluctuations()
             self.dice = data['dice']
-            # self.black = not self.app.run_server
+            self.black = not self.app.run_server
 
         eyes = sum(self.dice)
 
@@ -50,7 +49,8 @@ class Dice:
         self.eye_counter = eyes
 
     def send_eyes(self):
-        connection.Send({"action": "eyes", 'eyes': self.eye_counter})
+        message = json.dumps({"action": "eyes", 'eyes': self.eye_counter}) 
+        self.app.connection.send(message.encode())
 
     def roll_random(self):
         self.dice = [random.randint(1, 6) for _ in range(2)]
@@ -60,7 +60,8 @@ class Dice:
         self.offset = random.sample(range(-10, 10), 4)
 
     def send_state(self):
-        connection.Send({"action": "roll", 'dice': self.dice})
+        message = json.dumps({"action": "roll", 'dice': self.dice}) 
+        self.app.connection.send(message.encode())
 
     def render(self, screen):
         color = 'black' if self.black else 'white'
