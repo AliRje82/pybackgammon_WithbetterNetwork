@@ -6,13 +6,12 @@ from network import BackgammonServer
 
 
 class App(ConnectionListener):
-    def __init__(self, host, port, run_server=False):
+    def __init__(self, host, port, run_server):
         self._running = True
         self._screen = None
         self.reset_sound = None
         self.run_server = run_server
-        # self.size = self.width, self.height = 1960, 1120
-        self.size = self.width, self.height = 1000, 1000
+        self.size = self.width, self.height = 1960, 1120
         self.board = Board(self)
         self.dice = Dice(self)
         self.init_pieces()
@@ -123,8 +122,8 @@ class App(ConnectionListener):
         self.keep_connection_alive()
         connection.Pump()
         self.Pump()
-        if self.run_server:
-            self.server.Pump()
+        # if self.run_server:
+        #     self.server.Pump()
 
     def on_render(self):
         self.board.render(self._screen)
@@ -176,8 +175,8 @@ class App(ConnectionListener):
 
     def Network_playercount(self, data):
         new_player_count = int(data['count'])
-        if self.run_server and new_player_count > self.player_count:
-            self.send_gamestate()
+        # if self.run_server and new_player_count > self.player_count:
+        #     self.send_gamestate()
         self.player_count = new_player_count
         if self.player_count < 2:
             self.other_mouse.set_visible(False)

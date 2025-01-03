@@ -14,7 +14,7 @@ class Dice:
         self.cheer_sound = None
         self.images = [None]*2
         self.rects = [None]*2
-        self.black = self.app.run_server
+        # self.black = self.app.run_server
         self.reset()
 
     def reset(self):
@@ -31,12 +31,12 @@ class Dice:
         if data is None:
             self.roll_random()
             self.generate_fluctuations()
-            self.black = self.app.run_server
+            # self.black = self.app.run_server
             self.send_state()
         else:
             self.generate_fluctuations()
             self.dice = data['dice']
-            self.black = not self.app.run_server
+            # self.black = not self.app.run_server
 
         eyes = sum(self.dice)
 
